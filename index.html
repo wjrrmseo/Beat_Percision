@@ -51,6 +51,16 @@ tr.grade-perfect{background:#7cf7c511}tr.grade-great{background:#70d8ff11}tr.gra
   <section id="results" class="panel hidden">
     <span class="pill">측정 완료</span><h2 style="margin:0 0 14px">타이밍 결과</h2>
     <div class="stats">
+  <div class="stat">
+    <div class="k">설정 BPM</div>
+    <div class="v" id="resultBpm">—</div>
+  </div>
+  <div class="stat">
+    <div class="k">측정 박 수</div>
+    <div class="v" id="resultBeats">—</div>
+  </div>
+    </div>
+    <div class="stats">
       <div class="stat"><div class="k">평균 편차 (부호 포함)</div><div class="v" id="mean">—</div></div>
       <div class="stat"><div class="k">평균 절대 편차</div><div class="v" id="mae">—</div></div>
       <div class="stat"><div class="k">표준편차</div><div class="v" id="sd">—</div></div>
@@ -145,6 +155,8 @@ function grade(delta){
  return {label:'MISS',key:'miss'};
 }
 function finish(){
+  $('resultBpm').textContent = bpm;
+  $('resultBeats').textContent = total;
  if(!running && $('results').classList.contains('hidden')===false)return;
  running=false;cancelAnimationFrame(raf);clearTimeout(timer);clearInterval(countdownTimer);beatTimers.forEach(clearTimeout);beatTimers=[];show('results');
  const vals=offsets.map(x=>x.delta);
