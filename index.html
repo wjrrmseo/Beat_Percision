@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Beat Precision</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#141c32;--muted:#9ba8c7;--accent:#70e1ff;--good:#76f7bd;--bad:#ff8b9b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1a2b50 0,#0b1020 60%);font-family:system-ui,-apple-system,sans-serif;color:#f3f6ff;min-height:100vh;display:flex;justify-content:center}
+main{width:min(100%,560px);padding:20px 16px 32px}h1{font-size:26px;margin:5px 0 4px;letter-spacing:-.5px}.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.panel{background:rgba(20,28,50,.92);border:1px solid #2a3859;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 12px 32px #0002}
+.row{display:flex;gap:12px;align-items:center}.field{flex:1;min-width:0}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}
+input,select{width:100%;border:1px solid #39496d;border-radius:10px;background:#0d1428;color:#fff;padding:12px;font-size:16px}
+button{border:0;border-radius:13px;padding:14px 16px;font-size:16px;font-weight:750;cursor:pointer;touch-action:manipulation}
+.primary{background:linear-gradient(135deg,#70e1ff,#9e9cff);color:#091120;width:100%;margin-top:12px}.secondary{background:#263452;color:#e9efff}.hidden{display:none!important}
+.big{font-size:40px;font-weight:850;line-height:1.1}.muted{color:var(--muted)}.center{text-align:center}
+.beat-area{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:15px}
+.pulse{width:180px;height:180px;border-radius:50%;border:2px solid #70e1ff;background:radial-gradient(circle,#70e1ff22 0 28%,#70e1ff0b 29% 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 35px #70e1ff15;transition:transform .08s,border-color .08s}
+.pulse.hit{transform:scale(.94);border-color:var(--good);box-shadow:0 0 35px #76f7bd44}.pulse span{font-size:14px;font-weight:700;letter-spacing:1px}
+.tap{width:100%;min-height:76px;font-size:20px;background:linear-gradient(135deg,#70e1ff,#a6a0ff);color:#071120}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#0c1428;border:1px solid #263653;border-radius:13px;padding:12px}.stat .k{font-size:12px;color:var(--muted)}.stat .v{font-size:23px;font-weight:800;margin-top:5px;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}td,th{padding:9px 5px;border-bottom:1px solid #2a3859;text-align:right}td:first-child,th:first-child{text-align:left}th{color:var(--muted);font-weight:600}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#223452;color:#bfefff;font-size:12px;margin-bottom:10px}
+.grade-perfect{color:#7cf7c5!important}.grade-great{color:#70d8ff!important}.grade-good{color:#c6a0ff!important}.grade-bad{color:#ffca75!important}.grade-miss{color:#ff8297!important}
+tr.grade-perfect{background:#7cf7c511}tr.grade-great{background:#70d8ff11}tr.grade-good{background:#c6a0ff11}tr.grade-bad{background:#ffca7511}tr.grade-miss{background:#ff829711}
+.grade-counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:12px 0}
+.grade-count{border:1px solid #2a3859;background:#0c1428;border-radius:12px;padding:10px 4px;text-align:center;min-width:0}
+.grade-count .name{font-size:11px;font-weight:750}.grade-count .num{font-size:22px;font-weight:850;margin-top:4px}
+@media(max-width:380px){.grade-count{padding:8px 2px}.grade-count .name{font-size:10px}.grade-count .num{font-size:19px}}
+</style>
+</head>
+<body><main>
+  <h1>BEAT PRECISION</h1><div class="sub">박자에 맞춰 터치하고, 타이밍의 흔들림을 측정하세요.</div>
+  <section id="setup" class="panel">
+    <div class="row">
+      <div class="field"><label for="bpm">BPM</label><input id="bpm" type="number" min="30" max="300" value="120"></div>
+      <div class="field"><label for="beats">측정 박 수 (1–500)</label><input id="beats" type="number" min="1" max="500" value="20" inputmode="numeric"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="soundOffset">소리 오프셋 (ms, -200 ~ +200)</label><input id="soundOffset" type="number" min="-200" max="200" step="5" value="0" inputmode="numeric"><div class="note" style="margin-top:6px">음수는 소리를 먼저, 양수는 나중에 재생합니다. 측정 기준 시각은 바뀌지 않습니다.</div></div>
+    <div class="note" style="margin-top:12px">시작 후 3초 카운트다운이 끝나면 첫 박부터 터치하세요. 기준 박자는 화면의 원과 소리로 안내합니다. 가능한 한 매 박 한 번씩 눌러 주세요.</div>
+    <button id="start" class="primary">측정 시작</button>
+  </section>
+  <section id="play" class="panel hidden">
+    <div class="row" style="justify-content:space-between"><span class="pill" id="phase">준비</span><span class="muted" id="progress">0 / 20</span></div>
+    <div class="center"><div class="big" id="countdown">4</div><div class="muted" id="hint">카운트인 박자에 맞춰 준비하세요</div></div>
+    <div class="beat-area">
+      <div id="pulse" class="pulse"><span id="pulseText">READY</span></div>
+      <button id="tap" class="tap">터치!</button>
+      <div class="muted" id="last">박자 소리에 맞춰 터치</div>
+    </div>
+  </section>
+  <section id="results" class="panel hidden">
+    <span class="pill">측정 완료</span><h2 style="margin:0 0 14px">타이밍 결과</h2>
+    <div class="stats">
+      <div class="stat"><div class="k">평균 편차 (부호 포함)</div><div class="v" id="mean">—</div></div>
+      <div class="stat"><div class="k">평균 절대 편차</div><div class="v" id="mae">—</div></div>
+      <div class="stat"><div class="k">표준편차</div><div class="v" id="sd">—</div></div>
+      <div class="stat"><div class="k">평균 절대 오차</div><div class="v" id="abs">—</div></div>
+      <div class="stat"><div class="k">가장 빠름</div><div class="v" id="early">—</div></div>
+      <div class="stat"><div class="k">가장 늦음</div><div class="v" id="late">—</div></div>
+    </div>
+    <div style="margin-top:16px;font-weight:700">정확도 분포</div>
+    <div class="grade-counts">
+      <div class="grade-count"><div class="name grade-perfect">PERFECT</div><div class="num" id="countPerfect">0</div></div>
+      <div class="grade-count"><div class="name grade-great">GREAT</div><div class="num" id="countGreat">0</div></div>
+      <div class="grade-count"><div class="name grade-good">GOOD</div><div class="num" id="countGood">0</div></div>
+      <div class="grade-count"><div class="name grade-bad">BAD</div><div class="num" id="countBad">0</div></div>
+      <div class="grade-count"><div class="name grade-miss">MISS</div><div class="num" id="countMiss">0</div></div>
+    </div>
+    <div class="note">PERFECT: ±10ms · GREAT: ±20ms · GOOD: ±40ms · BAD: ±60ms · MISS: 60ms 초과 또는 터치 누락</div>
+    <div style="margin-top:14px;font-weight:700">박자별 편차 (ms)</div>
+    <div style="overflow-x:auto"><table><thead><tr><th>박</th><th>편차</th><th>판정</th></tr></thead><tbody id="detail"></tbody></table></div>
+    <p class="note">편차 = 터치 시각 − 목표 박자 시각. 음수는 빠름, 양수는 늦음. 표준편차는 편차의 모집단 표준편차로 계산합니다. 이 측정은 기기 터치 지연과 오디오 지연의 영향을 받을 수 있습니다.</p>
+    <button id="again" class="primary">다시 측정</button>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let audioCtx=null, timer=null, targetTimes=[], offsets=[], running=false, beatIndex=0, bpm=120, total=20, startAt=0, nextBeat=0, raf=null, countdownTimer=null, beatTimers=[], soundOffset=0;
+function show(id){['setup','play','results'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
+function beep(accent=false){
+ try{if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
+ const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=accent?1000:740;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(accent?.18:.1,audioCtx.currentTime+.004);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.075);o.start();o.stop(audioCtx.currentTime+.08)}catch(e){}
+}
+function begin(){
+ clearTimeout(timer);clearInterval(countdownTimer);cancelAnimationFrame(raf);beatTimers.forEach(clearTimeout);beatTimers=[];
+ bpm=Math.max(30,Math.min(300,Number($('bpm').value)||120));
+ total=Math.max(1,Math.min(500,Math.round(Number($('beats').value)||20)));
+ soundOffset=Math.max(-200,Math.min(200,Number($('soundOffset').value)||0));
+ $('bpm').value=bpm;$('beats').value=total;$('soundOffset').value=soundOffset;
+ offsets=[];targetTimes=[];beatIndex=0;running=false;show('play');
+ $('progress').textContent=`0 / ${total}`;$('phase').textContent='카운트인';$('countdown').textContent='4';
+ $('hint').textContent=`${bpm} BPM · 카운트인 4박`; $('last').textContent='카운트인 후 첫 박부터 터치하세요';$('pulseText').textContent='READY';
+ $('pulse').classList.remove('hit');
+ // Four count-in beats at the selected BPM, followed by the first measured beat.
+ const interval=60000/bpm;
+ const countInStart=performance.now()+180;
+ for(let i=0;i<4;i++){
+   const t=countInStart+i*interval;
+   beatTimers.push(setTimeout(()=>{if(!running){$('countdown').textContent=String(4-i);$('pulse').classList.add('hit');setTimeout(()=>$('pulse').classList.remove('hit'),90);beep(i===0)}},Math.max(0,t-performance.now())));
+ }
+ const measuredStart=countInStart+4*interval;
+ beatTimers.push(setTimeout(()=>{
+   if(!running){
+     $('countdown').textContent='GO!';schedule(measuredStart);
+   }
+ },Math.max(0,measuredStart-performance.now())));
+}
+function schedule(firstTarget){
+ running=true;$('phase').textContent='측정 중';$('hint').textContent='매 박자마다 한 번씩 터치';$('pulseText').textContent='TAP';
+ const interval=60000/bpm;
+ startAt=firstTarget ?? (performance.now()+350);
+ for(let i=0;i<total;i++)targetTimes.push(startAt+i*interval);
+ // Keep measurement targets independent from the configurable audible offset.
+ targetTimes.forEach((t,i)=>{
+   const soundDelay=Math.max(0,t+soundOffset-performance.now());
+   const visualDelay=Math.max(0,t-performance.now());
+   beatTimers.push(setTimeout(()=>{if(running)beep(i===0)},soundDelay));
+   beatTimers.push(setTimeout(()=>{if(running){$('pulse').classList.add('hit');setTimeout(()=>$('pulse').classList.remove('hit'),90)}},visualDelay));
+ });
+ timer=setTimeout(finish,Math.max(0,targetTimes[targetTimes.length-1]+interval*.8-performance.now()));
+}
+function tap(){
+ if(!running)return;
+ const now=performance.now();
+ // Match each tap to the nearest target beat not already matched, avoiding duplicates.
+ const available=targetTimes.map((t,i)=>({t,i})).filter(x=>!offsets.some(o=>o.i===x.i));
+ if(!available.length){$('last').textContent='모든 박자를 기록했어요';return}
+ let best=available.reduce((a,b)=>Math.abs(b.t-now)<Math.abs(a.t-now)?b:a);
+ const delta=now-best.t;
+ // only accept taps within a generous matching window; unmatched extra taps are ignored
+ if(Math.abs(delta)>Math.min(500,60000/bpm*.48)){$('last').textContent='박자 범위를 벗어났어요';return}
+ offsets.push({i:best.i,delta});
+ offsets.sort((a,b)=>a.i-b.i);
+ $('progress').textContent=`${offsets.length} / ${total}`;
+ $('last').textContent=`${best.i+1}번째 박: ${delta>0?'+':''}${delta.toFixed(0)} ms`;
+ $('pulse').classList.add('hit');setTimeout(()=>$('pulse').classList.remove('hit'),80);
+}
+function fmt(x){return `${x>0?'+':''}${x.toFixed(1)} ms`}
+function grade(delta){
+ const a=Math.abs(delta);
+ if(a<=10)return {label:'PERFECT',key:'perfect'};
+ if(a<=20)return {label:'GREAT',key:'great'};
+ if(a<=40)return {label:'GOOD',key:'good'};
+ if(a<=60)return {label:'BAD',key:'bad'};
+ return {label:'MISS',key:'miss'};
+}
+function finish(){
+ if(!running && $('results').classList.contains('hidden')===false)return;
+ running=false;cancelAnimationFrame(raf);clearTimeout(timer);clearInterval(countdownTimer);beatTimers.forEach(clearTimeout);beatTimers=[];show('results');
+ const vals=offsets.map(x=>x.delta);
+ const mean=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+ const mae=vals.length?vals.reduce((a,b)=>a+Math.abs(b),0)/vals.length:0;
+ const sd=vals.length?Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length):0;
+ if(!vals.length){['mean','mae','sd','abs','early','late'].forEach(id=>$(id).textContent='기록 없음')}
+ else {
+   $('mean').textContent=fmt(mean);$('mae').textContent=`${mae.toFixed(1)} ms`;$('sd').textContent=`${sd.toFixed(1)} ms`;$('abs').textContent=`${mae.toFixed(1)} ms`;
+   $('early').textContent=fmt(Math.min(...vals));$('late').textContent=fmt(Math.max(...vals));
+ }
+ const counts={perfect:0,great:0,good:0,bad:0,miss:0};
+ const rows=[];
+ for(let i=0;i<total;i++){
+   const o=offsets.find(x=>x.i===i);
+   if(!o){counts.miss++;rows.push(`<tr class="grade-miss"><td>${i+1}</td><td>—</td><td>MISS · 미입력</td></tr>`);continue}
+   const g=grade(o.delta);counts[g.key]++;
+   rows.push(`<tr class="grade-${g.key}"><td>${i+1}</td><td>${fmt(o.delta)}</td><td><strong>${g.label}</strong></td></tr>`);
+ }
+ $('countPerfect').textContent=counts.perfect;$('countGreat').textContent=counts.great;$('countGood').textContent=counts.good;$('countBad').textContent=counts.bad;$('countMiss').textContent=counts.miss;
+ $('detail').innerHTML=rows.join('');
+}
+$('start').addEventListener('click',begin);$('tap').addEventListener('pointerdown',e=>{e.preventDefault();tap()});$('again').addEventListener('click',()=>{show('setup')});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)finish()});
+</script></body></html>
