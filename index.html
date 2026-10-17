@@ -35,7 +35,7 @@ tr.grade-perfect{background:#7cf7c511}tr.grade-great{background:#70d8ff11}tr.gra
       <div class="field"><label for="bpm">BPM</label><input id="bpm" type="number" min="30" max="300" value="120"></div>
       <div class="field"><label for="beats">측정 박 수 (1–500)</label><input id="beats" type="number" min="1" max="500" value="20" inputmode="numeric"></div>
     </div>
-    <div class="field" style="margin-top:12px"><label for="soundOffset">소리 오프셋 (ms, -200 ~ +200)</label><input id="soundOffset" type="number" min="-200" max="200" step="5" value="0" inputmode="numeric"><div class="note" style="margin-top:6px">음수는 소리를 먼저, 양수는 나중에 재생합니다. 측정 기준 시각은 바뀌지 않습니다.</div></div>
+    <div class="field" style="margin-top:12px"><label for="soundOffset">소리 오프셋 (ms, -200 ~ +200)</label><input id="soundOffset" type="text" inputmode="text" min="-200" max="200" step="5" value="0" inputmode="numeric"><div class="note" style="margin-top:6px">음수는 소리를 먼저, 양수는 나중에 재생합니다. 측정 기준 시각은 바뀌지 않습니다.</div></div>
     <div class="note" style="margin-top:12px">시작 후 3초 카운트다운이 끝나면 첫 박부터 터치하세요. 기준 박자는 화면의 원과 소리로 안내합니다. 가능한 한 매 박 한 번씩 눌러 주세요.</div>
     <button id="start" class="primary">측정 시작</button>
   </section>
